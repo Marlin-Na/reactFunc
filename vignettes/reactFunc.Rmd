@@ -1,0 +1,475 @@
+---
+title: "Use Reactive Expression to Build Cacheable Function"
+author: "Marlin JL.M"
+date: "February 7, 2017"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+# Reactive Expression
+
+If you have ever learned or used shiny, you will know about reactive expression.
+In shiny app, we use reactive expressions to cache intermediate results and know
+which parts to update when input has changed, so that the app can run more efficiently.
+
+But in fact, reactive expression can not only be used by shiny app. Here I would
+demonstrate how to build a function which caches its intermediate results
+using reactive expression.
+
+
+## Properties of a Reactive Expression
+
+```{r, purl=FALSE}
+library(shiny)
+```
+
+Here
+
+```{r, purl=FALSE}
+set.seed(42)
+re <- reactiveValues()
+re$x <- 42
+re.a <- reactive( re$x + runif(1) )
+re.b <- reactive( re.a() + 1 )
+
+# Calculate the reactive expression (also cache the results in each step)
+isolate(re.b())
+```
+
+If the reactive value that the expressions depend on, namely `re$x`, do not change,
+next call to `isolate` will use the cached value.
+Hence, the following result is the same as the previous,
+despite there is a `runif` command.
+
+```{r, purl=FALSE}
+isolate(re.b())
+```
+
+Change the reactive value will recalculate the reactive expressions.
+
+```{r, purl=FALSE}
+re$x <- 69
+isolate(re.b())
+```
+
+
+# A Cacheable Function
+
+
+In the case that we want a function that cache its result, we can use a closure
+that stores its reactive expressions in its parent environment.
+
+```{r, purl=FALSE}
+gen.f <- function () {
+    # The place to store x (as a reactive source)
+    reactv <- reactiveValues()
+    # Store the reactive expressions
+    re.x <- reactive({
+        print("Getting re.x()...")
+        # Calculating this is a little hard, take a rest first.
+        Sys.sleep(1)
+        reactv$x + 1
+    })
+    re.y <- reactive({
+        print("Getting re.y()...")
+        Sys.sleep(1)
+        re.x() + 1
+    })
+    # Return a function (closure) that assign value of its argument as "reactiveValues"
+    # in the parent environment and get the result of the reactive expressions.
+    function (value) {
+        reactv$x <<- value
+        isolate(re.y())
+    }
+}
+f <- gen.f()
+```
+
+Then let's examine this returned function.
+
+1. The definition
+
+```{r, purl=FALSE}
+f
+```
+
+2. First run
+
+```{r, purl=FALSE}
+system.time(ans <- f(42))
+ans
+```
+
+3. Second run with same argument
+
+Run with the same argument will save some computing time by using
+the cached result.
+
+```{r, purl=FALSE}
+system.time(ans <- f(42))
+ans
+```
+
+4. Third run with a different argument
+
+```{r, purl=FALSE}
+system.time(ans <- f(69))
+ans
+```
+
+# Generic Builer
+
+
+```{r}
+dots <- function(...) {
+  eval(substitute(alist(...)))
+}
+isTheListNamed <- function (l) {
+    nms <- names(l)
+    if (any(is.null(nms)) || any(nms == ""))
+        return(FALSE)
+    else
+        return(TRUE)
+}
+```
+
+
+```{r}
+#' Build Cacheable Functions
+#' 
+#' \code{reactFunc} is a function generator that returns a function that is cacheable when
+#' combined with the use of \code{reactArg}.  See example.
+#'
+#' @name reactFunc
+#'
+#' @param ARGV
+#'     A named list or vector that represent the formal arguments of the returned function.
+#' @param ... 
+#'     Name-expression pairs that describe the reactive expressions defined in the parent
+#'     environment of the returned function. The last one will be used as the returned value
+#'     of the returned function.  See example.
+#' @return
+#'     \code{reactFunc} returns a closure (function); \code{name} should be used inside the
+#'     \code{...} arguments to describe the argument as a reactive source.
+#' @export
+#' @import shiny
+#' @importFrom pryr make_function
+#' @examples
+#' ## Build
+#' rf <- reactFunc(
+#'     ARGV = alist(x = 42, y = ),
+#'     x = reactArg(x),
+#'     y = reactArg(y),
+#'     a = {
+#'         print("Getting a()...")
+#'         Sys.sleep(0.5)
+#'         x() + 1
+#'     },
+#'     b = {
+#'         print("Getting b()...")
+#'         Sys.sleep(0.5)
+#'         y() + 1
+#'     },
+#'     ans = {
+#'         print("Getting ans()")
+#'         Sys.sleep(0.5)
+#'         a() + b()
+#'     }
+#' )
+#' ## Properties
+#' #1. Definition
+#' rf
+#' #2. First run
+#' m <- 6; n <- 9
+#' system.time(ans <- rf(x = m, y = n))
+#' ans
+#' #3. Seconde run with the same arguments
+#' system.time(ans <- rf(x = m, y = n))
+#' ans
+#' #4. Third run with an updated argument
+#' n <- 7
+#' system.time(ans <- rf(x = m, y = n))
+#' ans
+#' #5. Change the value of `x` to default
+#' system.time(ans <- rf(y = n))
+#' ans
+reactFunc <- function (ARGV, ...) {
+    reactContexts <- dots(...)
+    reactNames <- names(reactContexts)
+    arglist <- as.pairlist(ARGV)
+    
+    if (!isTheListNamed(reactContexts))
+        stop("Names of the ... arguments must be specified.")
+    if (!isTheListNamed(arglist))
+        stop("ARGV must be a named list or vector.")
+    
+    ## The reactive expressions are defined here
+    for (i in seq_along(reactContexts)) {
+        assign(reactNames[[i]], shiny::reactive(reactContexts[[i]], quoted = TRUE))
+    }
+    
+    ## The returned function will assign its arguments to this
+    ## handler to make their values reactive.
+    ReactiveSources <- shiny::reactiveValues()
+    
+    pryr::make_function(
+        args = arglist,
+        body = quote({
+            assignedArgs <- #c(as.list(environment()), list(...))
+                            as.list(environment())
+            assignedArgNames <- names(assignedArgs)
+
+            for (i in seq_along(assignedArgs)) {
+                do.call(
+                    what = `[[<-`,
+                    args = list(
+                        eval(parse(text = "ReactiveSources")),
+                        assignedArgNames[[i]],
+                        eval(parse(text = assignedArgNames[[i]]))
+                    ),
+                    envir = parent.env(environment())
+                )
+            }
+            
+            # Get result that produced by reactive expressions
+            lastExprName <- tail(reactNames, 1)
+            result <- shiny::isolate(
+                do.call(lastExprName, args = list())
+            )
+            result
+        })
+    )
+}
+```
+
+```{r}
+## We need this function because `reactiveValues` can not be copied by hand:
+## > r <- reactiveValues(x = 34)
+## > x <- r$x     # Not copyable
+#' @rdname reactFunc
+#' @param name
+#'     A symbol that corresponds to one of the names of \code{ARGV} (one of the argument name).
+#'     See example.
+#' @export
+reactArg <- function (name) {
+    namechr <- deparse(substitute(name))
+    intended.expr <- parse(
+        text = paste0("ReactiveSources$",namechr)
+    )
+    eval(intended.expr, envir = parent.frame())
+}
+```
+
+
+# Example
+
+The following is a simple example of creation of cacheable function using `reactFunc`.
+
+```{r, purl=FALSE}
+rf <- reactFunc(
+    # `x` will have default value, `y` not.
+    ARGV = alist(x = 42, y = ),
+    x = reactArg(x),
+    y = reactArg(y),
+    a = {
+        print("Getting a()...")
+        Sys.sleep(0.5)
+        x() + 1
+    },
+    b = {
+        print("Getting b()...")
+        Sys.sleep(0.5)
+        y() + 1
+    },
+
+    ans = {
+        print("Getting ans()")
+        Sys.sleep(0.5)
+        a() + b()
+    }
+)
+```
+
+Again let's look at this function `rf`.
+
+1. Definition
+
+```{r, purl=FALSE}
+rf
+```
+
+2. First run
+
+```{r, purl=FALSE}
+m <- 6; n <- 9
+system.time(ans <- rf(x = m, y = n))
+ans
+```
+
+3. Seconde run with the same arguments
+
+```{r, purl=FALSE}
+system.time(ans <- rf(x = m, y = n))
+ans
+```
+
+4. Third run with an updated argument
+
+```{r, purl=FALSE}
+n <- 7
+system.time(ans <- rf(x = m, y = n))
+ans
+```
+
+5. Change the value of `x` to default
+
+```{r, purl=FALSE}
+system.time(ans <- rf(y = n))
+ans
+```
+
+
+
+# Use case
+
+I think this kind of function can be most useful with shiny apps.
+Of course you can choose to wrap all these reactive logic inside the shiny server,
+but you can also separate each part in function which have a simple api and cached
+intermediate results.
+
+## TODO:
+1. Include a use case of cacheable function.
+2. How to copy/clone a function?
+
+
+
+
+# Session
+
+```{r, purl=FALSE}
+sessionInfo()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r, eval=FALSE, include=FALSE, purl=FALSE}
+######  ARCHIVE     #####-----------------------------------------
+
+
+r <- reactiveValues(x = 234)
+x <- r$x
+delayedAssign("x", r$x)
+ob <- reactive(x)
+isolate(ob())
+r$x <- 42
+delayedAssign("x", r$x)
+isolate(ob())
+
+
+parseName <- function(name) {
+    chr.name <- deparse(substitute(name))
+    intended.expr <- parse(
+        text = paste0("r$",chr.name)
+    )
+    eval(intended.expr, envir = parent.frame())
+}
+r <- reactiveValues(x = 2344)
+wtf <- r$x
+r1 <- reactive(r$x)
+r2 <- reactive(parseName(x))
+r1
+r2
+isolate(r1())
+isolate(r2())
+r$x <- 42
+isolate(r1())
+isolate(r2())
+
+r.con <- alist(ind.x = x + 69, ind.y = )
+r.nam <- names(r.con)
+
+
+
+assignsomethinginparent <- function (v) {
+    for (el in v)
+        assignInParent(el, el)
+}
+assignsomethinginparent(c('wtf','eww','io'))
+
+
+### Assign Reactive Expressions in a Loop
+###  See: https://github.com/rstudio/shiny/issues/532
+#1 This does not work
+out1 <- vector("list", 3)
+for(i in 1:3) {
+  out1[[i]] <- reactive(i)
+}
+isolate(out1[[1]]())
+#2 Either not work
+out2 <- vector("list", 3)
+for(i in 1:3) {
+    local({
+        out2[[i]] <<- reactive(i)
+    })
+}
+isolate(out2[[1]]())
+#3 Works
+out3 <- vector("list", 3)
+for(i in 1:3) {
+    local({
+        e <- i
+        out3[[i]] <<- reactive(e)
+    })
+}
+isolate(out3[[1]]())
+#4 Works
+out4 <- lapply(1:3, function(i) {
+    reactive(i)
+})
+isolate(out4[[1]]())
+
+
+
+context <- alist(x = 42,
+                 y = x() + 1,
+                 z = y() - 42)
+name <- names(context)
+for (i in 1:3) {
+    assign(name[[i]], reactive(context[[i]] ,quoted = TRUE))
+}
+isolate(x())
+isolate(y())
+isolate(z())
+
+
+
+
+f.gen <- function() {
+    x <- 43
+    function (v) {
+        x <<- x + v
+        x
+    }
+}
+f <- f.gen()
+f
+f(1)
+```
+
+
