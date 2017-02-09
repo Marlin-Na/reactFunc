@@ -130,7 +130,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 ##         reactv$x &lt;&lt;- value
 ##         isolate(re.y())
 ##     }
-## &lt;environment: 0x9f02e60&gt;</code></pre>
+## &lt;environment: 0x4cc83c0&gt;</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>First run</li>
 </ol>
@@ -138,7 +138,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 <pre><code>## [1] "Getting re.y()..."
 ## [1] "Getting re.x()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.012   2.003</code></pre>
+##   0.000   0.000   2.005</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 44</code></pre>
 <ol start="3" style="list-style-type: decimal">
@@ -147,7 +147,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 <p>Run with the same argument will save some computing time by using the cached result.</p>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">system.time</span>(ans &lt;-<span class="st"> </span><span class="kw">f</span>(<span class="dv">42</span>))</code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.000   0.000   0.001</code></pre>
+##       0       0       0</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 44</code></pre>
 <ol start="4" style="list-style-type: decimal">
@@ -157,7 +157,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 <pre><code>## [1] "Getting re.y()..."
 ## [1] "Getting re.x()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.008   0.004   2.003</code></pre>
+##   0.004   0.000   2.004</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 71</code></pre>
 </div>
@@ -167,6 +167,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">dots &lt;-<span class="st"> </span>function(...) {
   <span class="kw">eval</span>(<span class="kw">substitute</span>(<span class="kw">alist</span>(...)))
 }
+
 isTheListNamed &lt;-<span class="st"> </span>function (l) {
     nms &lt;-<span class="st"> </span><span class="kw">names</span>(l)
     if (<span class="kw">any</span>(<span class="kw">is.null</span>(nms)) ||<span class="st"> </span><span class="kw">any</span>(nms ==<span class="st"> ""</span>))
@@ -175,11 +176,6 @@ isTheListNamed &lt;-<span class="st"> </span>function (l) {
         <span class="kw">return</span>(<span class="ot">TRUE</span>)
 }</code></pre></div>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Build Cacheable Functions</span>
-<span class="co">#' </span>
-<span class="co">#' \code{reactFunc} is a function generator that returns a function that is cacheable when</span>
-<span class="co">#' combined with the use of \code{reactArg}.  See example.</span>
-<span class="co">#'</span>
-<span class="co">#' @name reactFunc</span>
 <span class="co">#'</span>
 <span class="co">#' @param ARGV</span>
 <span class="co">#'     A named list or vector that represent the formal arguments of the returned function.</span>
@@ -188,8 +184,10 @@ isTheListNamed &lt;-<span class="st"> </span>function (l) {
 <span class="co">#'     environment of the returned function. The last one will be used as the returned value</span>
 <span class="co">#'     of the returned function.  See example.</span>
 <span class="co">#' @return</span>
-<span class="co">#'     \code{reactFunc} returns a closure (function); \code{name} should be used inside the</span>
-<span class="co">#'     \code{...} arguments to describe the argument as a reactive source.</span>
+<span class="co">#'     \code{reactFunc} returns a function that caches its intermediate results.</span>
+<span class="co">#'     Upon each call to the returned function, if the arguments does not change, the function</span>
+<span class="co">#'     will return the cached result, otherwise it will recalculate the needed parts.</span>
+<span class="co">#'     See example.</span>
 <span class="co">#' @export</span>
 <span class="co">#' @import shiny</span>
 <span class="co">#' @importFrom pryr make_function</span>
@@ -197,21 +195,16 @@ isTheListNamed &lt;-<span class="st"> </span>function (l) {
 <span class="co">#' ## Build</span>
 <span class="co">#' rf &lt;- reactFunc(</span>
 <span class="co">#'     ARGV = alist(x = 42, y = ),</span>
-<span class="co">#'     x = reactArg(x),</span>
-<span class="co">#'     y = reactArg(y),</span>
 <span class="co">#'     a = {</span>
-<span class="co">#'         print("Getting a()...")</span>
-<span class="co">#'         Sys.sleep(0.5)</span>
-<span class="co">#'         x() + 1</span>
+<span class="co">#'         print("Getting a()..."); Sys.sleep(0.5)</span>
+<span class="co">#'         x + 1</span>
 <span class="co">#'     },</span>
 <span class="co">#'     b = {</span>
-<span class="co">#'         print("Getting b()...")</span>
-<span class="co">#'         Sys.sleep(0.5)</span>
-<span class="co">#'         y() + 1</span>
+<span class="co">#'         print("Getting b()..."); Sys.sleep(0.5)</span>
+<span class="co">#'         y + 1</span>
 <span class="co">#'     },</span>
 <span class="co">#'     ans = {</span>
-<span class="co">#'         print("Getting ans()")</span>
-<span class="co">#'         Sys.sleep(0.5)</span>
+<span class="co">#'         print("Getting ans()"); Sys.sleep(0.5)</span>
 <span class="co">#'         a() + b()</span>
 <span class="co">#'     }</span>
 <span class="co">#' )</span>
@@ -233,66 +226,65 @@ isTheListNamed &lt;-<span class="st"> </span>function (l) {
 <span class="co">#' system.time(ans &lt;- rf(y = n))</span>
 <span class="co">#' ans</span>
 reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
-    reactContexts &lt;-<span class="st"> </span><span class="kw">dots</span>(...)
-    reactNames &lt;-<span class="st"> </span><span class="kw">names</span>(reactContexts)
-    arglist &lt;-<span class="st"> </span><span class="kw">as.pairlist</span>(ARGV)
+    .reactContexts &lt;-<span class="st"> </span><span class="kw">dots</span>(...)
+    .reactNames &lt;-<span class="st"> </span><span class="kw">names</span>(.reactContexts)
+    .arglist &lt;-<span class="st"> </span><span class="kw">as.pairlist</span>(ARGV)
     
-    if (!<span class="kw">isTheListNamed</span>(reactContexts))
+    if (!<span class="kw">isTheListNamed</span>(.reactContexts))
         <span class="kw">stop</span>(<span class="st">"Names of the ... arguments must be specified."</span>)
-    if (!<span class="kw">isTheListNamed</span>(arglist))
+    if (!<span class="kw">isTheListNamed</span>(.arglist))
         <span class="kw">stop</span>(<span class="st">"ARGV must be a named list or vector."</span>)
+    if (<span class="kw">anyDuplicated</span>(<span class="kw">names</span>(.arglist)))
+        <span class="kw">warning</span>(<span class="st">"Names of the ... arguments have duplicated values,"</span>,
+                <span class="st">"which may cause unexpected results."</span>)
+    if (<span class="kw">anyDuplicated</span>(.reactNames))
+        <span class="kw">warning</span>(<span class="st">"Names of the ARGV argument have duplicated values,"</span>,
+                <span class="st">"which may cause unexpected results."</span>)
+    if (<span class="kw">anyDuplicated</span>(<span class="kw">c</span>(<span class="kw">names</span>(.arglist), .reactNames)))
+        <span class="kw">warning</span>(<span class="st">"Names of the ARGV argument and names of the ... arguments"</span>,
+                <span class="st">"have mutual values, which may cause unexpected results."</span>)
     
     ## The reactive expressions are defined here
-    for (i in <span class="kw">seq_along</span>(reactContexts)) {
-        <span class="kw">assign</span>(reactNames[[i]], shiny::<span class="kw">reactive</span>(reactContexts[[i]], <span class="dt">quoted =</span> <span class="ot">TRUE</span>))
+    for (i in <span class="kw">seq_along</span>(.reactContexts)) {
+        <span class="kw">assign</span>(.reactNames[[i]], shiny::<span class="kw">reactive</span>(.reactContexts[[i]], <span class="dt">quoted =</span> <span class="ot">TRUE</span>))
     }
     
-    ## The returned function will assign its arguments to this
-    ## handler to make their values reactive.
-    ReactiveSources &lt;-<span class="st"> </span>shiny::<span class="kw">reactiveValues</span>()
-    
     pryr::<span class="kw">make_function</span>(
-        <span class="dt">args =</span> arglist,
+        <span class="dt">args =</span> .arglist,
         <span class="dt">body =</span> <span class="kw">quote</span>({
             assignedArgs &lt;-<span class="st"> </span><span class="co">#c(as.list(environment()), list(...))</span>
 <span class="st">                            </span><span class="kw">as.list</span>(<span class="kw">environment</span>())
             assignedArgNames &lt;-<span class="st"> </span><span class="kw">names</span>(assignedArgs)
 
             for (i in <span class="kw">seq_along</span>(assignedArgs)) {
-                <span class="kw">do.call</span>(
-                    <span class="dt">what =</span> <span class="st">`</span><span class="dt">[[&lt;-</span><span class="st">`</span>,
-                    <span class="dt">args =</span> <span class="kw">list</span>(
-                        <span class="kw">eval</span>(<span class="kw">parse</span>(<span class="dt">text =</span> <span class="st">"ReactiveSources"</span>)),
-                        assignedArgNames[[i]],
-                        <span class="kw">eval</span>(<span class="kw">parse</span>(<span class="dt">text =</span> assignedArgNames[[i]]))
-                    ),
+                <span class="kw">assign</span>(
+                    <span class="dt">x =</span> assignedArgNames[[i]],
+                    <span class="dt">value =</span> assignedArgs[[i]],
+                    <span class="co">#value = eval(parse(text = assignedArgNames[[i]])),</span>
                     <span class="dt">envir =</span> <span class="kw">parent.env</span>(<span class="kw">environment</span>())
                 )
+                if (!<span class="kw">exists</span>(<span class="kw">paste0</span>(<span class="st">".has_reactive_binding."</span>, assignedArgNames[[i]]))) {
+                    shiny::<span class="kw">makeReactiveBinding</span>(
+                        <span class="dt">symbol =</span> assignedArgNames[[i]],
+                        <span class="dt">env =</span> <span class="kw">parent.env</span>(<span class="kw">environment</span>())
+                    )
+                    <span class="kw">assign</span>(
+                        <span class="kw">paste0</span>(<span class="st">".has_reactive_binding."</span>, assignedArgNames[[i]]),
+                        <span class="dt">value =</span> <span class="ot">TRUE</span>,
+                        <span class="dt">envir =</span> <span class="kw">parent.env</span>(<span class="kw">environment</span>())
+                    )
+                }
             }
             
             <span class="co"># Get result that produced by reactive expressions</span>
-            lastExprName &lt;-<span class="st"> </span><span class="kw">tail</span>(reactNames, <span class="dv">1</span>)
+            lastExprName &lt;-<span class="st"> </span><span class="kw">tail</span>(.reactNames, <span class="dv">1</span>)
             result &lt;-<span class="st"> </span>shiny::<span class="kw">isolate</span>(
                 <span class="kw">do.call</span>(lastExprName, <span class="dt">args =</span> <span class="kw">list</span>())
             )
             result
+        
         })
     )
-}</code></pre></div>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## We need this function because `reactiveValues` can not be copied by hand:
-## &gt; r &lt;- reactiveValues(x = 34)
-## &gt; x &lt;- r$x     # Not copyable
-<span class="co">#' @rdname reactFunc</span>
-<span class="co">#' @param name</span>
-<span class="co">#'     A symbol that corresponds to one of the names of \code{ARGV} (one of the argument name).</span>
-<span class="co">#'     See example.</span>
-<span class="co">#' @export</span>
-reactArg &lt;-<span class="st"> </span>function (name) {
-    namechr &lt;-<span class="st"> </span><span class="kw">deparse</span>(<span class="kw">substitute</span>(name))
-    intended.expr &lt;-<span class="st"> </span><span class="kw">parse</span>(
-        <span class="dt">text =</span> <span class="kw">paste0</span>(<span class="st">"ReactiveSources$"</span>,namechr)
-    )
-    <span class="kw">eval</span>(intended.expr, <span class="dt">envir =</span> <span class="kw">parent.frame</span>())
 }</code></pre></div>
 </div>
 <div id="example" class="section level1">
@@ -302,22 +294,16 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">rf &lt;-<span class="st"> </span><span class="kw"><a href="../reference/reactFunc.html">reactFunc</a></span>(
     <span class="co"># `x` will have default value, `y` not.</span>
     <span class="dt">ARGV =</span> <span class="kw">alist</span>(<span class="dt">x =</span> <span class="dv">42</span>, <span class="dt">y =</span> ),
-    <span class="dt">x =</span> <span class="kw"><a href="../reference/reactFunc.html">reactArg</a></span>(x),
-    <span class="dt">y =</span> <span class="kw"><a href="../reference/reactFunc.html">reactArg</a></span>(y),
     <span class="dt">a =</span> {
-        <span class="kw">print</span>(<span class="st">"Getting a()..."</span>)
-        <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>)
-        <span class="kw">x</span>() +<span class="st"> </span><span class="dv">1</span>
+        <span class="kw">print</span>(<span class="st">"Getting a()..."</span>); <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>)
+        x +<span class="st"> </span><span class="dv">1</span>
     },
     <span class="dt">b =</span> {
-        <span class="kw">print</span>(<span class="st">"Getting b()..."</span>)
-        <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>)
-        <span class="kw">y</span>() +<span class="st"> </span><span class="dv">1</span>
+        <span class="kw">print</span>(<span class="st">"Getting b()..."</span>); <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>)
+        y +<span class="st"> </span><span class="dv">1</span>
     },
-
     <span class="dt">ans =</span> {
-        <span class="kw">print</span>(<span class="st">"Getting ans()"</span>)
-        <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>)
+        <span class="kw">print</span>(<span class="st">"Getting ans()"</span>); <span class="kw">Sys.sleep</span>(<span class="fl">0.5</span>)
         <span class="kw">a</span>() +<span class="st"> </span><span class="kw">b</span>()
     }
 )</code></pre></div>
@@ -331,15 +317,20 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 ##     assignedArgs &lt;- as.list(environment())
 ##     assignedArgNames &lt;- names(assignedArgs)
 ##     for (i in seq_along(assignedArgs)) {
-##         do.call(what = `[[&lt;-`, args = list(eval(parse(text = "ReactiveSources")), 
-##             assignedArgNames[[i]], eval(parse(text = assignedArgNames[[i]]))), 
+##         assign(x = assignedArgNames[[i]], value = assignedArgs[[i]], 
 ##             envir = parent.env(environment()))
+##         if (!exists(paste0(".has_reactive_binding.", assignedArgNames[[i]]))) {
+##             shiny::makeReactiveBinding(symbol = assignedArgNames[[i]], 
+##                 env = parent.env(environment()))
+##             assign(paste0(".has_reactive_binding.", assignedArgNames[[i]]), 
+##                 value = TRUE, envir = parent.env(environment()))
+##         }
 ##     }
-##     lastExprName &lt;- tail(reactNames, 1)
+##     lastExprName &lt;- tail(.reactNames, 1)
 ##     result &lt;- shiny::isolate(do.call(lastExprName, args = list()))
 ##     result
 ## }
-## &lt;environment: 0x915bba8&gt;</code></pre>
+## &lt;environment: 0x4692d98&gt;</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>First run</li>
 </ol>
@@ -349,7 +340,7 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 ## [1] "Getting a()..."
 ## [1] "Getting b()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.020   0.000   1.509</code></pre>
+##   0.004   0.000   1.508</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 17</code></pre>
 <ol start="3" style="list-style-type: decimal">
@@ -357,7 +348,7 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">system.time</span>(ans &lt;-<span class="st"> </span><span class="kw">rf</span>(<span class="dt">x =</span> m, <span class="dt">y =</span> n))</code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.000   0.000   0.002</code></pre>
+##   0.004   0.000   0.000</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 17</code></pre>
 <ol start="4" style="list-style-type: decimal">
@@ -368,7 +359,7 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 <pre><code>## [1] "Getting ans()"
 ## [1] "Getting b()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.008   0.000   1.005</code></pre>
+##   0.004   0.000   1.004</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 15</code></pre>
 <ol start="5" style="list-style-type: decimal">
@@ -378,7 +369,7 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 <pre><code>## [1] "Getting ans()"
 ## [1] "Getting a()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.004   1.005</code></pre>
+##   0.004   0.000   1.004</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 51</code></pre>
 </div>
@@ -415,23 +406,22 @@ reactArg &lt;-<span class="st"> </span>function (name) {
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] reactFunc_0.1.0      pkgdown_0.1.0.9000   devtools_1.12.0.9000
-## [4] shiny_1.0.0          magrittr_1.5         personalutils_0.1.0 
+## [1] shiny_1.0.0         reactFunc_0.2.0     magrittr_1.5       
+## [4] personalutils_0.1.0
 ## 
 ## loaded via a namespace (and not attached):
-##  [1] purrr_0.2.2         htmltools_0.3.5     yaml_2.1.14        
-##  [4] pkgbuild_0.0.0.9000 withr_1.0.2         pryr_0.1.2         
-##  [7] stringr_1.1.0       commonmark_1.1      codetools_0.2-15   
-## [10] evaluate_0.10       memoise_1.0.0       knitr_1.15.1       
-## [13] highlight_0.4.7     httpuv_1.3.3        curl_2.2           
-## [16] Rcpp_0.12.9         xtable_1.8-2        backports_1.0.5    
-## [19] desc_1.1.0          pkgload_0.0.0.9000  jsonlite_1.2       
-## [22] mime_0.5            digest_0.6.12       stringi_1.1.2      
-## [25] rprojroot_1.2       tools_3.3.2         lazyeval_0.2.0     
-## [28] tibble_1.2          crayon_1.3.2        whisker_0.3-2      
-## [31] xml2_1.1.1          assertthat_0.1      rmarkdown_1.3.9002 
-## [34] roxygen2_6.0.1      httr_1.2.1          R6_2.2.0           
-## [37] git2r_0.18.0</code></pre>
+##  [1] Rcpp_0.12.9          knitr_1.15.1         xml2_1.1.1          
+##  [4] whisker_0.3-2        roxygen2_6.0.1       devtools_1.12.0.9000
+##  [7] pkgload_0.0.0.9000   xtable_1.8-2         R6_2.2.0            
+## [10] stringr_1.1.0        tools_3.3.2          pkgbuild_0.0.0.9000 
+## [13] withr_1.0.2          htmltools_0.3.5      commonmark_1.1      
+## [16] yaml_2.1.14          lazyeval_0.2.0       assertthat_0.1      
+## [19] rprojroot_1.2        digest_0.6.12        tibble_1.2          
+## [22] pkgdown_0.1.0.9000   crayon_1.3.2         pryr_0.1.2          
+## [25] purrr_0.2.2          codetools_0.2-15     mime_0.5            
+## [28] memoise_1.0.0        evaluate_0.10        rmarkdown_1.3.9002  
+## [31] stringi_1.1.2        desc_1.1.0           backports_1.0.5     
+## [34] highlight_0.4.7      httpuv_1.3.3</code></pre>
 </div>
 </div>
   </div>

@@ -2,12 +2,9 @@
 % Please edit documentation in R/reactFunc-out.R
 \name{reactFunc}
 \alias{reactFunc}
-\alias{reactArg}
 \title{Build Cacheable Functions}
 \usage{
 reactFunc(ARGV, ...)
-
-reactArg(name)
 }
 \arguments{
 \item{ARGV}{A named list or vector that represent the formal arguments of the returned function.}
@@ -15,37 +12,30 @@ reactArg(name)
 \item{...}{Name-expression pairs that describe the reactive expressions defined in the parent
 environment of the returned function. The last one will be used as the returned value
 of the returned function.  See example.}
-
-\item{name}{A symbol that corresponds to one of the names of \code{ARGV} (one of the argument name).
-See example.}
 }
 \value{
-\code{reactFunc} returns a closure (function); \code{name} should be used inside the
-    \code{...} arguments to describe the argument as a reactive source.
+\code{reactFunc} returns a function that caches its intermediate results.
+    Upon each call to the returned function, if the arguments does not change, the function
+    will return the cached result, otherwise it will recalculate the needed parts.
+    See example.
 }
 \description{
-\code{reactFunc} is a function generator that returns a function that is cacheable when
-combined with the use of \code{reactArg}.  See example.
+Build Cacheable Functions
 }
 \examples{
 ## Build
 rf <- reactFunc(
     ARGV = alist(x = 42, y = ),
-    x = reactArg(x),
-    y = reactArg(y),
     a = {
-        print("Getting a()...")
-        Sys.sleep(0.5)
-        x() + 1
+        print("Getting a()..."); Sys.sleep(0.5)
+        x + 1
     },
     b = {
-        print("Getting b()...")
-        Sys.sleep(0.5)
-        y() + 1
+        print("Getting b()..."); Sys.sleep(0.5)
+        y + 1
     },
     ans = {
-        print("Getting ans()")
-        Sys.sleep(0.5)
+        print("Getting ans()"); Sys.sleep(0.5)
         a() + b()
     }
 )

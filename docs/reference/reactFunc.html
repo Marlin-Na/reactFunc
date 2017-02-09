@@ -81,13 +81,10 @@
     </div>
 
     
-    <p><code>reactFunc</code> is a function generator that returns a function that is cacheable when
-combined with the use of <code>reactArg</code>.  See example.</p>
+    <p>Build Cacheable Functions</p>
     
 
-    <pre><span class='fu'>reactFunc</span>(<span class='no'>ARGV</span>, <span class='no'>...</span>)
-
-<span class='fu'>reactArg</span>(<span class='no'>name</span>)</pre>
+    <pre><span class='fu'>reactFunc</span>(<span class='no'>ARGV</span>, <span class='no'>...</span>)</pre>
     
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
     <dl class="dl-horizontal">
@@ -97,36 +94,30 @@ combined with the use of <code>reactArg</code>.  See example.</p>
       <dd>Name-expression pairs that describe the reactive expressions defined in the parent
 environment of the returned function. The last one will be used as the returned value
 of the returned function.  See example.</dd>
-      <dt>name</dt>
-      <dd>A symbol that corresponds to one of the names of <code>ARGV</code> (one of the argument name).
-See example.</dd>
     </dl>
     
     <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
 
-    <p><code>reactFunc</code> returns a closure (function); <code>name</code> should be used inside the
-    <code>...</code> arguments to describe the argument as a reactive source.</p>
+    <p><code>reactFunc</code> returns a function that caches its intermediate results.
+    Upon each call to the returned function, if the arguments does not change, the function
+    will return the cached result, otherwise it will recalculate the needed parts.
+    See example.</p>
     
 
     <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
     <pre class="examples"><div class='input'><span class='co'>## Build</span>
 <span class='no'>rf</span> <span class='kw'>&lt;-</span> <span class='fu'>reactFunc</span>(
     <span class='kw'>ARGV</span> <span class='kw'>=</span> <span class='fu'>alist</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='fl'>42</span>, <span class='kw'>y</span> <span class='kw'>=</span> ),
-    <span class='kw'>x</span> <span class='kw'>=</span> <span class='fu'>reactArg</span>(<span class='no'>x</span>),
-    <span class='kw'>y</span> <span class='kw'>=</span> <span class='fu'>reactArg</span>(<span class='no'>y</span>),
     <span class='kw'>a</span> <span class='kw'>=</span> {
-        <span class='fu'>print</span>(<span class='st'>"Getting a()..."</span>)
-        <span class='fu'>Sys.sleep</span>(<span class='fl'>0.5</span>)
-        <span class='fu'>x</span>() + <span class='fl'>1</span>
+        <span class='fu'>print</span>(<span class='st'>"Getting a()..."</span>); <span class='fu'>Sys.sleep</span>(<span class='fl'>0.5</span>)
+        <span class='no'>x</span> + <span class='fl'>1</span>
     },
     <span class='kw'>b</span> <span class='kw'>=</span> {
-        <span class='fu'>print</span>(<span class='st'>"Getting b()..."</span>)
-        <span class='fu'>Sys.sleep</span>(<span class='fl'>0.5</span>)
-        <span class='fu'>y</span>() + <span class='fl'>1</span>
+        <span class='fu'>print</span>(<span class='st'>"Getting b()..."</span>); <span class='fu'>Sys.sleep</span>(<span class='fl'>0.5</span>)
+        <span class='no'>y</span> + <span class='fl'>1</span>
     },
     <span class='kw'>ans</span> <span class='kw'>=</span> {
-        <span class='fu'>print</span>(<span class='st'>"Getting ans()"</span>)
-        <span class='fu'>Sys.sleep</span>(<span class='fl'>0.5</span>)
+        <span class='fu'>print</span>(<span class='st'>"Getting ans()"</span>); <span class='fu'>Sys.sleep</span>(<span class='fl'>0.5</span>)
         <span class='fu'>a</span>() + <span class='fu'>b</span>()
     }
 )
@@ -137,29 +128,34 @@ See example.</dd>
 #&gt;     assignedArgs &lt;- as.list(environment())
 #&gt;     assignedArgNames &lt;- names(assignedArgs)
 #&gt;     for (i in seq_along(assignedArgs)) {
-#&gt;         do.call(what = `[[&lt;-`, args = list(eval(parse(text = &quot;ReactiveSources&quot;)), 
-#&gt;             assignedArgNames[[i]], eval(parse(text = assignedArgNames[[i]]))), 
+#&gt;         assign(x = assignedArgNames[[i]], value = assignedArgs[[i]], 
 #&gt;             envir = parent.env(environment()))
+#&gt;         if (!exists(paste0(&quot;.has_reactive_binding.&quot;, assignedArgNames[[i]]))) {
+#&gt;             shiny::makeReactiveBinding(symbol = assignedArgNames[[i]], 
+#&gt;                 env = parent.env(environment()))
+#&gt;             assign(paste0(&quot;.has_reactive_binding.&quot;, assignedArgNames[[i]]), 
+#&gt;                 value = TRUE, envir = parent.env(environment()))
+#&gt;         }
 #&gt;     }
-#&gt;     lastExprName &lt;- tail(reactNames, 1)
+#&gt;     lastExprName &lt;- tail(.reactNames, 1)
 #&gt;     result &lt;- shiny::isolate(do.call(lastExprName, args = list()))
 #&gt;     result
 #&gt; }
-#&gt; &lt;environment: 0x6ce55a0&gt;</div><div class='input'><span class='co'>#2. First run</span>
+#&gt; &lt;environment: 0x4190df8&gt;</div><div class='input'><span class='co'>#2. First run</span>
 <span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='fl'>6</span>; <span class='no'>n</span> <span class='kw'>&lt;-</span> <span class='fl'>9</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>m</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt; [1] &quot;Getting ans()&quot;
 #&gt; [1] &quot;Getting a()...&quot;
 #&gt; [1] &quot;Getting b()...&quot;</div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   0.008   0.012   1.509 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#3. Seconde run with the same arguments</span>
+#&gt;   0.008   0.000   1.513 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#3. Seconde run with the same arguments</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>m</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   0.004   0.000   0.001 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#4. Third run with an updated argument</span>
+#&gt;       0       0       0 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#4. Third run with an updated argument</span>
 <span class='no'>n</span> <span class='kw'>&lt;-</span> <span class='fl'>7</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>m</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt; [1] &quot;Getting ans()&quot;
 #&gt; [1] &quot;Getting b()...&quot;</div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   0.012   0.000   1.005 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 15</div><div class='input'><span class='co'>#5. Change the value of `x` to default</span>
+#&gt;   0.004   0.000   1.004 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 15</div><div class='input'><span class='co'>#5. Change the value of `x` to default</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt; [1] &quot;Getting ans()&quot;
 #&gt; [1] &quot;Getting a()...&quot;</div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   0.008   0.004   1.005 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 51</div></pre>
+#&gt;   0.000   0.000   1.004 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 51</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>

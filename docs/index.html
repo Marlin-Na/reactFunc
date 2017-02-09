@@ -76,10 +76,11 @@
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">library</span>(reactFunc)
 myfunc &lt;-<span class="st"> </span><span class="kw"><a href="reference/reactFunc.html">reactFunc</a></span>(
     <span class="dt">ARGV =</span> <span class="kw">alist</span>(<span class="dt">x =</span> <span class="dv">6</span>, <span class="dt">y =</span> ),
-    <span class="dt">a =</span> <span class="kw"><a href="reference/reactFunc.html">reactArg</a></span>(x) +<span class="st"> </span><span class="dv">1</span>
-    <span class="dt">b =</span> <span class="kw"><a href="reference/reactFunc.html">reactArg</a></span>(y) +<span class="st"> </span><span class="dv">1</span>
-    <span class="dt">c =</span> <span class="kw">a</span>() +<span class="st"> </span><span class="kw">b</span>()
-)</code></pre></div>
+    <span class="dt">a =</span> x +<span class="st"> </span><span class="dv">1</span>,
+    <span class="dt">b =</span> y -<span class="st"> </span><span class="dv">3</span>,
+    <span class="dt">ans =</span> <span class="kw">a</span>() *<span class="st"> </span><span class="kw">b</span>()
+)
+<span class="kw">myfunc</span>(<span class="dt">x =</span> <span class="dv">6</span>, <span class="dt">y =</span> <span class="dv">9</span>)</code></pre></div>
 </div>
 </div>
 </div>
