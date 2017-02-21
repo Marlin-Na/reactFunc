@@ -124,3 +124,46 @@ reactFunc <- function (ARGV, ...) {
     )
 }
 
+## ---- purl=TRUE----------------------------------------------------------
+#' Convert a cacheable function to a normal function
+#'
+#' Functions built with \code{\link{reactFunc}} can be converted to a normal
+#' version so that you do not need to replicate yourself.
+#' 
+#' @param f
+#'     A function built with \code{\link{reactFunc}}.
+#' @return
+#'     Return a function having similar behavior with the input function.
+#' @export
+#'
+#' @examples
+#' refunc <- reactFunc(ARGV = alist(x = , y = ),
+#'     ans = a() * b(),
+#'     a = x + 1,
+#'     b = y - 3,
+#'     ret = ans()
+#' )
+#' normfunc <- asNormalFunc(refunc)
+#' normfunc
+#' identical(refunc(6,9), normfunc(6,9))
+asNormalFunc <- function (f) {
+    stopifnot(is.function(f))
+    stopifnot(exists(".reactContexts", envir = environment(f)))
+    reactContexts <- get(".reactContexts", environment(f))
+    assignments <- mapply(
+        function (var, value) bquote(.(as.symbol(var)) <- function () .(value)),
+        var = names(reactContexts),
+        value = reactContexts,
+        SIMPLIFY = FALSE
+    )
+    retchr <- list(
+        bquote(return(.(call(tail(names(reactContexts),1)))))
+    )
+    funcbody <- {
+        exprlist <- c(quote(`{`), c(assignments, retchr))
+        as.call(exprlist)
+    }
+    arglist <- get(".arglist", environment(f))
+    pryr::make_function(args = arglist, body = funcbody, parent.frame())
+}
+

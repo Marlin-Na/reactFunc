@@ -130,7 +130,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 ##         reactv$x &lt;&lt;- value
 ##         isolate(re.y())
 ##     }
-## &lt;environment: 0x4cc83c0&gt;</code></pre>
+## &lt;environment: 0x522a080&gt;</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>First run</li>
 </ol>
@@ -138,7 +138,7 @@ f &lt;-<span class="st"> </span><span class="kw">gen.f</span>()</code></pre></di
 <pre><code>## [1] "Getting re.y()..."
 ## [1] "Getting re.x()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.000   0.000   2.005</code></pre>
+##   0.000   0.000   2.004</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 44</code></pre>
 <ol start="3" style="list-style-type: decimal">
@@ -330,7 +330,7 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 ##     result &lt;- shiny::isolate(do.call(lastExprName, args = list()))
 ##     result
 ## }
-## &lt;environment: 0x4692d98&gt;</code></pre>
+## &lt;environment: 0x46d4f28&gt;</code></pre>
 <ol start="2" style="list-style-type: decimal">
 <li>First run</li>
 </ol>
@@ -340,7 +340,7 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 ## [1] "Getting a()..."
 ## [1] "Getting b()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.000   1.508</code></pre>
+##   0.004   0.000   1.506</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 17</code></pre>
 <ol start="3" style="list-style-type: decimal">
@@ -348,7 +348,7 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 </ol>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">system.time</span>(ans &lt;-<span class="st"> </span><span class="kw">rf</span>(<span class="dt">x =</span> m, <span class="dt">y =</span> n))</code></pre></div>
 <pre><code>##    user  system elapsed 
-##   0.004   0.000   0.000</code></pre>
+##       0       0       0</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 17</code></pre>
 <ol start="4" style="list-style-type: decimal">
@@ -359,7 +359,7 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 <pre><code>## [1] "Getting ans()"
 ## [1] "Getting b()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.000   1.004</code></pre>
+##   0.000   0.000   1.003</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 15</code></pre>
 <ol start="5" style="list-style-type: decimal">
@@ -369,9 +369,72 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 <pre><code>## [1] "Getting ans()"
 ## [1] "Getting a()..."</code></pre>
 <pre><code>##    user  system elapsed 
-##   0.004   0.000   1.004</code></pre>
+##   0.004   0.000   1.003</code></pre>
 <div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">ans</code></pre></div>
 <pre><code>## [1] 51</code></pre>
+</div>
+<div id="get-two-versions-of-a-function" class="section level1">
+<h1 class="hasAnchor">
+<html><body><a href="#get-two-versions-of-a-function" class="anchor"> </a></body></html>Get two versions of a function!</h1>
+<p>The following is a function that can convert a cacheable function built with <code>reactFunc</code> to a normal function. See:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co">#' Convert a cacheable function to a normal function</span>
+<span class="co">#'</span>
+<span class="co">#' Functions built with \code{\link{reactFunc}} can be converted to a normal</span>
+<span class="co">#' version so that you do not need to replicate yourself.</span>
+<span class="co">#' </span>
+<span class="co">#' @param f</span>
+<span class="co">#'     A function built with \code{\link{reactFunc}}.</span>
+<span class="co">#' @return</span>
+<span class="co">#'     Return a function having similar behavior with the input function.</span>
+<span class="co">#' @export</span>
+<span class="co">#'</span>
+<span class="co">#' @examples</span>
+<span class="co">#' refunc &lt;- reactFunc(ARGV = alist(x = , y = ),</span>
+<span class="co">#'     ans = a() * b(),</span>
+<span class="co">#'     a = x + 1,</span>
+<span class="co">#'     b = y - 3,</span>
+<span class="co">#'     ret = ans()</span>
+<span class="co">#' )</span>
+<span class="co">#' normfunc &lt;- asNormalFunc(refunc)</span>
+<span class="co">#' normfunc</span>
+<span class="co">#' identical(refunc(6,9), normfunc(6,9))</span>
+asNormalFunc &lt;-<span class="st"> </span>function (f) {
+    <span class="kw">stopifnot</span>(<span class="kw">is.function</span>(f))
+    <span class="kw">stopifnot</span>(<span class="kw">exists</span>(<span class="st">".reactContexts"</span>, <span class="dt">envir =</span> <span class="kw">environment</span>(f)))
+    reactContexts &lt;-<span class="st"> </span><span class="kw">get</span>(<span class="st">".reactContexts"</span>, <span class="kw">environment</span>(f))
+    assignments &lt;-<span class="st"> </span><span class="kw">mapply</span>(
+        function (var, value) <span class="kw">bquote</span>(.(<span class="kw">as.symbol</span>(var)) &lt;-<span class="st"> </span>function () .(value)),
+        <span class="dt">var =</span> <span class="kw">names</span>(reactContexts),
+        <span class="dt">value =</span> reactContexts,
+        <span class="dt">SIMPLIFY =</span> <span class="ot">FALSE</span>
+    )
+    retchr &lt;-<span class="st"> </span><span class="kw">list</span>(
+        <span class="kw">bquote</span>(<span class="kw">return</span>(.(<span class="kw">call</span>(<span class="kw">tail</span>(<span class="kw">names</span>(reactContexts),<span class="dv">1</span>)))))
+    )
+    funcbody &lt;-<span class="st"> </span>{
+        exprlist &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="kw">quote</span>(<span class="st">`</span><span class="dt">{</span><span class="st">`</span>), <span class="kw">c</span>(assignments, retchr))
+        <span class="kw">as.call</span>(exprlist)
+    }
+    arglist &lt;-<span class="st"> </span><span class="kw">get</span>(<span class="st">".arglist"</span>, <span class="kw">environment</span>(f))
+    pryr::<span class="kw">make_function</span>(<span class="dt">args =</span> arglist, <span class="dt">body =</span> funcbody, <span class="kw">parent.frame</span>())
+}</code></pre></div>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">refunc &lt;-<span class="st"> </span><span class="kw"><a href="../reference/reactFunc.html">reactFunc</a></span>(<span class="dt">ARGV =</span> <span class="kw">alist</span>(<span class="dt">x =</span> <span class="dv">6</span>, <span class="dt">y =</span> ),
+    <span class="dt">a =</span> x +<span class="st"> </span><span class="dv">1</span>,
+    <span class="dt">b =</span> y -<span class="st"> </span><span class="dv">3</span>,
+    <span class="dt">ans =</span> <span class="kw">a</span>() *<span class="st"> </span><span class="kw">b</span>()
+)
+normfunc &lt;-<span class="st"> </span><span class="kw"><a href="../reference/asNormalFunc.html">asNormalFunc</a></span>(refunc)
+normfunc</code></pre></div>
+<pre><code>## function (x = 6, y) 
+## {
+##     a &lt;- function() x + 1
+##     b &lt;- function() y - 3
+##     ans &lt;- function() a() * b()
+##     return(ans())
+## }
+## &lt;environment: 0x503e270&gt;</code></pre>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">identical</span>(<span class="kw">refunc</span>(<span class="dv">6</span>,<span class="dv">9</span>), <span class="kw">normfunc</span>(<span class="dv">6</span>,<span class="dv">9</span>))</code></pre></div>
+<pre><code>## [1] TRUE</code></pre>
 </div>
 <div id="use-case" class="section level1">
 <h1 class="hasAnchor">
@@ -406,8 +469,8 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 ## [1] stats     graphics  grDevices utils     datasets  methods   base     
 ## 
 ## other attached packages:
-## [1] shiny_1.0.0         reactFunc_0.2.0     magrittr_1.5       
-## [4] personalutils_0.1.0
+## [1] shiny_1.0.0         reactFunc_0.3.0     pkgdown_0.1.0.9000 
+## [4] magrittr_1.5        personalutils_0.1.0
 ## 
 ## loaded via a namespace (and not attached):
 ##  [1] Rcpp_0.12.9          knitr_1.15.1         xml2_1.1.1          
@@ -417,11 +480,11 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
 ## [13] withr_1.0.2          htmltools_0.3.5      commonmark_1.1      
 ## [16] yaml_2.1.14          lazyeval_0.2.0       assertthat_0.1      
 ## [19] rprojroot_1.2        digest_0.6.12        tibble_1.2          
-## [22] pkgdown_0.1.0.9000   crayon_1.3.2         pryr_0.1.2          
-## [25] purrr_0.2.2          codetools_0.2-15     mime_0.5            
-## [28] memoise_1.0.0        evaluate_0.10        rmarkdown_1.3.9002  
-## [31] stringi_1.1.2        desc_1.1.0           backports_1.0.5     
-## [34] highlight_0.4.7      httpuv_1.3.3</code></pre>
+## [22] crayon_1.3.2         pryr_0.1.2           purrr_0.2.2         
+## [25] codetools_0.2-15     mime_0.5             memoise_1.0.0       
+## [28] evaluate_0.10        rmarkdown_1.3.9002   stringi_1.1.2       
+## [31] desc_1.1.0           backports_1.0.5      highlight_0.4.7     
+## [34] httpuv_1.3.3</code></pre>
 </div>
 </div>
   </div>
@@ -438,6 +501,7 @@ reactFunc &lt;-<span class="st"> </span>function (ARGV, ...) {
       <li><a href="#a-cacheable-function">A Cacheable Function</a></li>
       <li><a href="#generic-builer">Generic Builer</a></li>
       <li><a href="#example">Example</a></li>
+      <li><a href="#get-two-versions-of-a-function">Get two versions of a function!</a></li>
       <li>
 <a href="#use-case">Use case</a><ul class="nav nav-pills nav-stacked">
 <li><a href="#todo">TODO:</a></li>

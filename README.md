@@ -28,12 +28,14 @@ devtools::install_github("marlin-na/reactFunc")
 
 ```r
 library(reactFunc)
-myfunc <- reactFunc(
+reactfunc <- reactFunc(
     ARGV = alist(x = 6, y = ),
     a = x + 1,
     b = y - 3,
     ans = a() * b()
 )
-myfunc(x = 6, y = 9)
+normalfunc <- asNormalFunc(reactfunc)
+reactfunc(x = 6, y = 9)
+normalfunc(x = 6, y = 9)
 ```
 

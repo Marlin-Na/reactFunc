@@ -141,12 +141,12 @@ of the returned function.  See example.</dd>
 #&gt;     result &lt;- shiny::isolate(do.call(lastExprName, args = list()))
 #&gt;     result
 #&gt; }
-#&gt; &lt;environment: 0x4190df8&gt;</div><div class='input'><span class='co'>#2. First run</span>
+#&gt; &lt;environment: 0x361f1d0&gt;</div><div class='input'><span class='co'>#2. First run</span>
 <span class='no'>m</span> <span class='kw'>&lt;-</span> <span class='fl'>6</span>; <span class='no'>n</span> <span class='kw'>&lt;-</span> <span class='fl'>9</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>m</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt; [1] &quot;Getting ans()&quot;
 #&gt; [1] &quot;Getting a()...&quot;
 #&gt; [1] &quot;Getting b()...&quot;</div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   0.008   0.000   1.513 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#3. Seconde run with the same arguments</span>
+#&gt;   0.004   0.000   1.506 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#3. Seconde run with the same arguments</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>x</span> <span class='kw'>=</span> <span class='no'>m</span>, <span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt;    user  system elapsed 
 #&gt;       0       0       0 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 17</div><div class='input'><span class='co'>#4. Third run with an updated argument</span>
 <span class='no'>n</span> <span class='kw'>&lt;-</span> <span class='fl'>7</span>
@@ -155,7 +155,7 @@ of the returned function.  See example.</dd>
 #&gt;   0.004   0.000   1.004 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 15</div><div class='input'><span class='co'>#5. Change the value of `x` to default</span>
 <span class='fu'>system.time</span>(<span class='no'>ans</span> <span class='kw'>&lt;-</span> <span class='fu'>rf</span>(<span class='kw'>y</span> <span class='kw'>=</span> <span class='no'>n</span>))</div><div class='output co'>#&gt; [1] &quot;Getting ans()&quot;
 #&gt; [1] &quot;Getting a()...&quot;</div><div class='output co'>#&gt;    user  system elapsed 
-#&gt;   0.000   0.000   1.004 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 51</div></pre>
+#&gt;   0.004   0.000   1.003 </div><div class='input'><span class='no'>ans</span></div><div class='output co'>#&gt; [1] 51</div></pre>
   </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>

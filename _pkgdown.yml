@@ -18,7 +18,9 @@ navbar:
 reference:
   - title: All functions
     desc: ~
-    contents: reactFunc
+    contents:
+      - reactFunc
+      - asNormalFunc
 templates:
   params:
     bootswatch: flatly

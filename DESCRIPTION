@@ -1,7 +1,7 @@
 Package: reactFunc
 Type: Package
 Title: Cacheable Function Using Reactive Expression
-Version: 0.2.0
+Version: 0.3.0
 Authors@R: person("Jialin", "Ma", email = "marlin-@gmx.cn",
                   role = c("aut", "cre"))
 Description: A tiny package that provide tools to create

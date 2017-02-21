@@ -6,7 +6,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Function reference • reactFunc</title>
+<title>Convert a cacheable function to a normal function — asNormalFunc • reactFunc</title>
 
 <!-- jquery -->
 <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha384-nrOSfDHtoPMzJHjVTdCopGqIqeYETSXhZDFyniQ8ZHcVy08QesyHcnOUpMpqnmWq" crossorigin="anonymous"></script>
@@ -34,7 +34,7 @@
   </head>
 
   <body>
-    <div class="container template-reference-index">
+    <div class="container template-reference-topic">
       <header>
       <div class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container">
@@ -75,35 +75,57 @@
       </header>
 
       <div class="row">
-  <div class="col-md-9">
+  <div class="col-md-9 contents">
     <div class="page-header">
-      <h1>Function reference</h1>
-      <h4>version&nbsp;0.3.0</h4>
+    <h1>Convert a cacheable function to a normal function</h1>
     </div>
 
-    <div class="contents">
-      <h2 id="section-all-functions" class="hasAnchor"><a href="#section-all-functions" class="anchor"></a>All functions</h2>
-      <p class="section-desc"></p>
-
-      
-      <p><a href="asNormalFunc.html">Convert a cacheable function to a normal function</a></p>
-      <ul>
-        <li><code><a href="asNormalFunc.html">asNormalFunc</a></code></li>
-      </ul>
-      
-      <p><a href="reactFunc.html">Build Cacheable Functions</a></p>
-      <ul>
-        <li><code><a href="reactFunc.html">reactFunc</a></code></li>
-      </ul>
     
-    </div>
-  </div>
+    <p>Functions built with <code><a href='reactFunc.html'>reactFunc</a></code> can be converted to a normal
+version so that you do not need to replicate yourself.</p>
+    
 
+    <pre><span class='fu'>asNormalFunc</span>(<span class='no'>f</span>)</pre>
+    
+    <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a> Arguments</h2>
+    <dl class="dl-horizontal">
+      <dt>f</dt>
+      <dd>A function built with <code><a href='reactFunc.html'>reactFunc</a></code>.</dd>
+    </dl>
+    
+    <h2 class="hasAnchor" id="value"><a class="anchor" href="#value"></a>Value</h2>
+
+    <p>Return a function having similar behavior with the input function.</p>
+    
+
+    <h2 class="hasAnchor" id="examples"><a class="anchor" href="#examples"></a>Examples</h2>
+    <pre class="examples"><div class='input'><span class='no'>refunc</span> <span class='kw'>&lt;-</span> <span class='fu'><a href='reactFunc.html'>reactFunc</a></span>(<span class='kw'>ARGV</span> <span class='kw'>=</span> <span class='fu'>alist</span>(<span class='kw'>x</span> <span class='kw'>=</span> , <span class='kw'>y</span> <span class='kw'>=</span> ),
+    <span class='kw'>ans</span> <span class='kw'>=</span> <span class='fu'>a</span>() * <span class='fu'>b</span>(),
+    <span class='kw'>a</span> <span class='kw'>=</span> <span class='no'>x</span> + <span class='fl'>1</span>,
+    <span class='kw'>b</span> <span class='kw'>=</span> <span class='no'>y</span> - <span class='fl'>3</span>,
+    <span class='kw'>ret</span> <span class='kw'>=</span> <span class='fu'>ans</span>()
+)
+<span class='no'>normfunc</span> <span class='kw'>&lt;-</span> <span class='fu'>asNormalFunc</span>(<span class='no'>refunc</span>)
+<span class='no'>normfunc</span></div><div class='output co'>#&gt; function (x, y) 
+#&gt; {
+#&gt;     ans &lt;- function() a() * b()
+#&gt;     a &lt;- function() x + 1
+#&gt;     b &lt;- function() y - 3
+#&gt;     ret &lt;- function() ans()
+#&gt;     return(ret())
+#&gt; }
+#&gt; &lt;environment: 0x35ede80&gt;</div><div class='input'><span class='fu'>identical</span>(<span class='fu'>refunc</span>(<span class='fl'>6</span>,<span class='fl'>9</span>), <span class='fu'>normfunc</span>(<span class='fl'>6</span>,<span class='fl'>9</span>))</div><div class='output co'>#&gt; [1] TRUE</div></pre>
+  </div>
   <div class="col-md-3 hidden-xs hidden-sm" id="sidebar">
     <h2>Contents</h2>
     <ul class="nav nav-pills nav-stacked">
-      <li><a href="#section-all-functions">All functions</a></li>
+      <li><a href="#arguments">Arguments</a></li>
+      
+      <li><a href="#value">Value</a></li>
+      
+      <li><a href="#examples">Examples</a></li>
     </ul>
+
   </div>
 </div>
 
